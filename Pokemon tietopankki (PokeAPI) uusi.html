@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pokémon Tietopankki</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      background-color: #f8f9fa;
+    }
+    .container {
+      max-width: 800px;
+      margin: auto;
+    }
+    input, button {
+      padding: 10px;
+      margin: 5px;
+      font-size: 16px;
+    }
+    #pokemon-info {
+      margin-top: 20px;
+      border: 2px solid #333;
+      padding: 20px;
+      border-radius: 10px;
+      background: #fff;
+    }
+    .type {
+      padding: 5px 10px;
+      margin: 5px;
+      display: inline-block;
+      border-radius: 5px;
+      color: white;
+    }
+    .type-fire { background-color: #f08030; }
+    .type-water { background-color: #6890f0; }
+    .type-grass { background-color: #78c850; }
+    .type-electric { background-color: #f8d030; color: black; }
+    .type-psychic { background-color: #f85888; }
+    .type-ice { background-color: #98d8d8; }
+    .type-dragon { background-color: #7038f8; }
+    .type-dark { background-color: #705848; }
+    .type-fairy { background-color: #ee99ac; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Pokémon Tietopankki</h1>
+    <input id="search-input" type="text" placeholder="Anna nimi tai ID">
+    <button onclick="fetchPokemon()">Hae Pokémon</button>
+    <div id="pokemon-info"></div>
+    <div id="buttons">
+      <button id="previous-btn" onclick="fetchAdjacentPokemon(-1)">Edellinen Pokémon</button>
+      <button id="next-btn" onclick="fetchAdjacentPokemon(1)">Seuraava Pokémon</button>
+    </div>
+  </div>
+  <script>
+    let currentPokemonId = null;
+
+    async function fetchPokemon() {
+      const query = document.getElementById("search-input").value.trim().toLowerCase();
+      if (!query) return;
+
+      const apiUrl = `https://pokeapi.co/api/v2/pokemon/${query}`;
+      try {
+        const response = await fetch(apiUrl);
+        if (!response.ok) throw new Error("Pokémonia ei löytynyt!");
+        const data = await response.json();
+
+        displayPokemon(data);
+        currentPokemonId = data.id;
+      } catch (error) {
+        document.getElementById("pokemon-info").innerHTML = `<p>${error.message}</p>`;
+      }
+    }
+
+    function displayPokemon(data) {
+      const typesHtml = data.types.map(t => `<span class="type type-${t.type.name}">${t.type.name}</span>`).join(" ");
+      const statsHtml = data.stats.map(s => `<p>${s.stat.name}: ${s.base_stat}</p>`).join("");
+      const abilitiesHtml = data.abilities.map(a => `<button onclick="fetchAbility('${a.ability.name}')">${a.ability.name}</button>`).join(" ");
+
+      document.getElementById("pokemon-info").innerHTML = `
+        <h2>${data.name} (#${data.id})</h2>
+        <img src="${data.sprites.front_default}" alt="${data.name} (normal)">
+        <img src="${data.sprites.front_shiny}" alt="${data.name} (shiny)">
+        <p><strong>Tyyppi:</strong> ${typesHtml}</p>
+        <p><strong>Paino:</strong> ${data.weight / 10} kg</p>
+        <p><strong>Korkeus:</strong> ${data.height / 10} m</p>
+        <div><strong>Statsit:</strong> ${statsHtml}</div>
+        <div><strong>Abilityt:</strong> ${abilitiesHtml}</div>
+        <button onclick="playCry(${data.id})">Kuuntele huuto</button>
+      `;
+    }
+
+    async function fetchAdjacentPokemon(direction) {
+      if (currentPokemonId === null) return;
+      const newId = currentPokemonId + direction;
+      if (newId < 1) return;
+
+      const apiUrl = `https://pokeapi.co/api/v2/pokemon/${newId}`;
+      try {
+        const response = await fetch(apiUrl);
+        if (!response.ok) throw new Error("Pokémonia ei löytynyt!");
+        const data = await response.json();
+
+        displayPokemon(data);
+        currentPokemonId = data.id;
+      } catch (error) {
+        console.error(error);
+      }
+    }
+
+    async function fetchAbility(abilityName) {
+      const apiUrl = `https://pokeapi.co/api/v2/ability/${abilityName}`;
+      try {
+        const response = await fetch(apiUrl);
+        if (!response.ok) throw new Error("Abilityä ei löytynyt!");
+        const data = await response.json();
+
+        const effect = data.effect_entries.find(e => e.language.name === "en").effect;
+        const pokemonList = data.pokemon.map(p => p.pokemon.name).join(", ");
+
+        alert(`Nimi: ${data.name}\nEfekti: ${effect}\nPokémonit: ${pokemonList}`);
+      } catch (error) {
+        alert(error.message);
+      }
+    }
+
+    function playCry(pokemonId) {
+      // Varmistetaan, että URL on oikea Pokémon ID:lle
+      const audioUrl = `https://raw.githubusercontent.com/PokeAPI/cries/main/cries/pokemon/latest/132.ogg`;
+
+      // Kokeillaan soittaa ääni
+      const audio = new Audio(audioUrl);
+      audio.play().catch(error => {
+        console.error("Ääni ei toistu:", error);
+        alert("Pokémonin huutoa ei voitu toistaa. Yritä myöhemmin.");
+      });
+    }
+  </script>
+</body>
+</html>

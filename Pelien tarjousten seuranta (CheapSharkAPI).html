@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="fi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pelitarjoukset</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: gray;
+            color: white;
+            margin: 0;
+            padding: 20px;
+        }
+        h1 {
+            text-align: center;
+        }
+        #game-search-container {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        #games-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            justify-content: center;
+        }
+        .game-card {
+            background-color: #222;
+            border: 1px solid #444;
+            border-radius: 5px;
+            padding: 10px;
+            width: 200px;
+            text-align: center;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .game-card:hover {
+            transform: scale(1.05);
+        }
+        .game-card img {
+            width: 100%;
+            height: auto;
+            border-radius: 5px;
+        }
+        #game-details {
+            margin-top: 20px;
+            text-align: center;
+        }
+        #game-details img {
+            max-width: 300px;
+            border-radius: 5px;
+        }
+        .offer {
+            margin-top: 10px;
+            background-color: #333;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .offer img {
+            width: 50px;
+            height: auto;
+            vertical-align: middle;
+        }
+    </style>
+</head>
+<body>
+    <h1>Pelitarjoukset</h1>
+    <div id="game-search-container">
+        <input type="text" id="game-search" placeholder="Etsi peliä" />
+        <button onclick="searchGames()">Hae</button>
+    </div>
+
+    <div id="games-list"></div>
+
+    <div id="game-details"></div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        function searchGames() {
+            const searchQuery = document.getElementById('game-search').value.trim();
+            if (!searchQuery) {
+                alert('Kirjoita pelin nimi!');
+                return;
+            }
+
+            const url = `https://www.cheapshark.com/api/1.0/games?title=${searchQuery}`;
+
+            $.get(url, function (data) {
+                if (data.length === 0) {
+                    alert('Ei tuloksia!');
+                    return;
+                }
+                displayGameList(data);
+            }).fail(function () {
+                alert('Tietoja ei voitu hakea.');
+            });
+        }
+
+        function displayGameList(games) {
+            const gamesListDiv = document.getElementById('games-list');
+            gamesListDiv.innerHTML = '';
+
+            games.forEach(game => {
+                const gameCard = document.createElement('div');
+                gameCard.className = 'game-card';
+                gameCard.onclick = function () {
+                    showGameDetails(game.gameID);
+                };
+
+                const gameImage = document.createElement('img');
+                gameImage.src = game.thumb;
+                gameCard.appendChild(gameImage);
+
+                const gameName = document.createElement('p');
+                gameName.innerText = game.external;
+                gameCard.appendChild(gameName);
+
+                gamesListDiv.appendChild(gameCard);
+            });
+        }
+
+        function showGameDetails(gameID) {
+            const url = `https://www.cheapshark.com/api/1.0/games?id=${gameID}`;
+
+            $.get(url, function (data) {
+                displayGameDetails(data);
+            }).fail(function () {
+                alert('Tietoja ei voitu hakea.');
+            });
+        }
+
+        function displayGameDetails(game) {
+            const gameDetailsDiv = document.getElementById('game-details');
+            gameDetailsDiv.innerHTML = '';
+
+            const gameName = document.createElement('h2');
+            gameName.innerText = game.info.title;
+            gameDetailsDiv.appendChild(gameName);
+
+            const gameImage = document.createElement('img');
+            gameImage.src = game.info.thumb;
+            gameDetailsDiv.appendChild(gameImage);
+
+            const lowestPrice = document.createElement('p');
+            lowestPrice.innerText = `Alin hinta koskaan: $${game.cheapestPriceEver.price}`;
+            gameDetailsDiv.appendChild(lowestPrice);
+
+            const currentOffersHeader = document.createElement('h3');
+            currentOffersHeader.innerText = 'Nykyiset tarjoukset:';
+            gameDetailsDiv.appendChild(currentOffersHeader);
+
+            game.deals.forEach(deal => {
+                const offerDiv = document.createElement('div');
+                offerDiv.className = 'offer';
+
+                const storeName = document.createElement('p');
+                storeName.innerText = `Kauppa: ${deal.storeName}`;
+                offerDiv.appendChild(storeName);
+
+                const storeLogo = document.createElement('img');
+                storeLogo.src = `https://www.cheapshark.com${deal.storeLogo}`;
+                offerDiv.appendChild(storeLogo);
+
+                const dealPrice = document.createElement('p');
+                dealPrice.innerText = `Tarjoushinta: $${deal.price}`;
+                offerDiv.appendChild(dealPrice);
+
+                const normalPrice = document.createElement('p');
+                normalPrice.innerText = `Normaalihinta: $${deal.retailPrice}`;
+                offerDiv.appendChild(normalPrice);
+
+                gameDetailsDiv.appendChild(offerDiv);
+            });
+        }
+    </script>
+</body>
+</html>
